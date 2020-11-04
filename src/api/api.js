@@ -1,3 +1,5 @@
+import { makePreparedTasksModel } from '../helpers/todoHelpers';
+
 const apiUrl = process.env.REACT_APP_DB_URL;
 
 export const getTodosFromServer = () => fetch(`${apiUrl}/tasks.json`)
@@ -44,3 +46,23 @@ export const changeTaskCompletement = (
   .catch((error) => {
     throw new Error(error);
   });
+
+export const completeAllTodos = (todos, isAllCompleted) => {
+  const preparedTasksModel = makePreparedTasksModel(todos, isAllCompleted);
+
+  return fetch(`${apiUrl}/tasks.json`, {
+    method: 'PATCH',
+    body: JSON.stringify(preparedTasksModel),
+  });
+};
+
+export const deleteCompletedTasks = (todos) => {
+  const completedTodos = todos.filter(todo => todo.isCompleted === true);
+  const completedTodosModel = makePreparedTasksModel(completedTodos);
+
+  // TODO: Doesn't works properly!!!
+  return fetch(`${apiUrl}/tasks.json`, {
+    method: 'DELETE',
+    body: JSON.stringify(completedTodosModel),
+  });
+};

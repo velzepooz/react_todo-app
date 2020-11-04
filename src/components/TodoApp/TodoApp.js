@@ -11,7 +11,10 @@ import {
   getTodosFromServer,
   deleteTask,
   changeTaskCompletement,
+  completeAllTodos,
+  deleteCompletedTasks,
 } from '../../api/api';
+import { makeArrayFromTasksModel } from '../../helpers/todoHelpers';
 
 export class TodoApp extends React.Component {
   state = {
@@ -21,21 +24,17 @@ export class TodoApp extends React.Component {
   }
 
   componentDidMount() {
+    // TODO: Make loader
     getTodosFromServer()
       .then((data) => {
-        const tempArray = [];
+        if (data) {
+          const tempArray = makeArrayFromTasksModel(data);
 
-        // eslint-disable-next-line no-restricted-syntax
-        for (const [key, value] of Object.entries(data)) {
-          tempArray.push({
-            id: key, ...value,
+          this.setState({
+            todos: [...tempArray],
+            allCompleted: tempArray.every(todo => todo.isCompleted === true),
           });
         }
-
-        this.setState({
-          todos: [...tempArray],
-          allCompleted: tempArray.every(todo => todo.isCompleted === true),
-        });
       })
       .catch((error) => {
         throw new Error(error.message);
@@ -66,6 +65,7 @@ export class TodoApp extends React.Component {
     }
   }
 
+  // TODO: Make async
   deleteTodo = (taskId) => {
     deleteTask(taskId)
       .then((response) => {
@@ -100,24 +100,36 @@ export class TodoApp extends React.Component {
           }),
         }));
 
-        this.checkCompletement();
+        this.#checkCompletement();
       }
     } catch (error) {
       throw new Error(error.message);
     }
   }
 
-  completeAll = () => {
-    this.setState(prevState => ({
-      todos: prevState.todos.map(todo => ({
-        ...todo,
-        isCompleted: !prevState.allCompleted,
-      })),
-      allCompleted: !prevState.allCompleted,
-    }));
+  completeAll = async() => {
+    try {
+      const response = completeAllTodos(
+        this.state.todos,
+        this.state.allCompleted,
+      );
+
+      if (response) {
+        this.setState(prevState => ({
+          todos: prevState.todos.map(todo => ({
+            ...todo,
+            isCompleted: !prevState.allCompleted,
+          })),
+          allCompleted: !prevState.allCompleted,
+        }));
+      }
+    } catch (error) {
+      throw new Error(error.message);
+    }
   }
 
-  checkCompletement = () => {
+  // eslint-disable-next-line react/sort-comp
+  #checkCompletement = () => {
     this.setState(prevState => ({
       allCompleted: prevState.todos.every(todo => (
         todo.isCompleted === true
@@ -126,6 +138,8 @@ export class TodoApp extends React.Component {
   }
 
   clearCompleted = () => {
+    deleteCompletedTasks(this.state.todos);
+
     this.setState(prevState => (
       {
         todos: prevState.todos.filter(todo => todo.isCompleted !== true),
