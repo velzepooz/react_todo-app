@@ -9,7 +9,7 @@ export const TodoShapes = {
 export const TodoAppShapes = {
   todos: PropTypes.arrayOf(PropTypes.shape(
     TodoShapes,
-  )).isRequired,
+  )),
 };
 
 export const AddFormShapes = {

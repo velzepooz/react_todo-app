@@ -1,71 +1,110 @@
 import React from 'react';
 import { Route } from 'react-router-dom';
-import { v4 as uuidv4 } from 'uuid';
 import { TodoAppShapes } from '../../Shapes/Shapes';
 import { AddForm } from '../AddForm/AddForm';
 import { TodoList } from '../TodoList/TodoList';
 import { TodoMenu } from '../TodoMenu/TodoMenu';
 import { CompleteAllCheckbox }
   from '../CompleteAllCheckbox/CompleteAllCheckbox';
+import {
+  postTodo,
+  getTodosFromServer,
+  deleteTask,
+  changeTaskCompletement,
+} from '../../api/api';
 
 export class TodoApp extends React.Component {
   state = {
     todos: [],
-    allCompleted: this.props.todos.every(todo => (
-      todo.isCompleted === true
-    )),
+    allCompleted: [],
     isCompleted: true,
   }
 
   componentDidMount() {
-    const localState = JSON.parse(localStorage.getItem('todoApp'));
+    getTodosFromServer()
+      .then((data) => {
+        const tempArray = [];
 
-    if (localState) {
-      this.setState({ ...localState });
-    }
+        // eslint-disable-next-line no-restricted-syntax
+        for (const [key, value] of Object.entries(data)) {
+          tempArray.push({
+            id: key, ...value,
+          });
+        }
+
+        this.setState({
+          todos: [...tempArray],
+          allCompleted: tempArray.every(todo => todo.isCompleted === true),
+        });
+      })
+      .catch((error) => {
+        throw new Error(error.message);
+      });
   }
 
-  componentDidUpdate() {
-    localStorage.setItem('todoApp', JSON.stringify(this.state));
-  }
-
-  addTodo = (taskTitle) => {
+  // eslint-disable-next-line space-before-function-paren
+  addTodo = async (taskTitle) => {
     const newTodo = {
-      id: uuidv4(),
       title: taskTitle,
       isCompleted: false,
     };
 
-    this.setState(prevState => ({
-      todos: [
-        ...prevState.todos,
-        { ...newTodo },
-      ],
-    }));
+    try {
+      const result = await postTodo(newTodo);
+      const data = await result.json();
+
+      newTodo.id = data.name;
+
+      this.setState(prevState => ({
+        todos: [
+          ...prevState.todos,
+          { ...newTodo },
+        ],
+      }));
+    } catch (error) {
+      throw new Error(error.message);
+    }
   }
 
   deleteTodo = (taskId) => {
-    this.setState(prevState => (
-      {
-        todos: prevState.todos.filter(todo => todo.id !== taskId),
-      }));
+    deleteTask(taskId)
+      .then((response) => {
+        if (response.status === 200) {
+          this.setState(prevState => (
+            {
+              todos: prevState.todos.filter(todo => todo.id !== taskId),
+            }));
+        }
+      })
+      .catch((error) => {
+        throw new Error(error.message);
+      });
   }
 
-  changeCompletement = (taskId) => {
-    this.setState(prevState => ({
-      todos: prevState.todos.map((todo) => {
-        if (todo.id !== taskId) {
-          return todo;
-        }
+  // eslint-disable-next-line space-before-function-paren
+  changeCompletement = async (taskId) => {
+    try {
+      const result = await changeTaskCompletement(taskId, this.state.todos);
 
-        return {
-          ...todo,
-          isCompleted: !todo.isCompleted,
-        };
-      }),
-    }));
+      if (result) {
+        this.setState(prevState => ({
+          todos: prevState.todos.map((todo) => {
+            if (todo.id !== taskId) {
+              return todo;
+            }
 
-    this.checkCompletement();
+            return {
+              ...todo,
+              isCompleted: !todo.isCompleted,
+            };
+          }),
+        }));
+
+        this.checkCompletement();
+      }
+    } catch (error) {
+      throw new Error(error.message);
+    }
   }
 
   completeAll = () => {
