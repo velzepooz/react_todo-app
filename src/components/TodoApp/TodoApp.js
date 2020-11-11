@@ -13,6 +13,7 @@ import {
   changeTaskCompletement,
   completeAllTodos,
   deleteCompletedTasks,
+  sendChangedTaskTitle,
 } from '../../api/api';
 import { makeArrayFromTasksModel } from '../../helpers/todoHelpers';
 
@@ -159,6 +160,17 @@ export class TodoApp extends React.Component {
   }
 
   changeTodo = (taskId, newTitle) => {
+    const { todos } = this.state;
+
+    const changedTask = {
+      ...todos.find(todo => todo.id === taskId),
+      title: newTitle,
+    };
+
+    sendChangedTaskTitle(changedTask)
+      .then(response => console.log(response))
+      .catch(error => console.log(error));
+
     this.setState(prevState => ({
       todos: prevState.todos.map((todo) => {
         if (todo.id !== taskId) {

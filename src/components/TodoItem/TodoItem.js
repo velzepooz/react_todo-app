@@ -4,11 +4,11 @@ import classnames from 'classnames';
 import { TodoShapes } from '../../Shapes/Shapes';
 
 export class TodoItem extends React.Component {
-  state ={
+  state = {
     isEdit: false,
     editedTitle: this.props.title,
     editId: null,
-    tempTitle: this.props.title,
+    isKeyUp: false,
   }
 
   inputFocus = React.createRef();
@@ -25,18 +25,29 @@ export class TodoItem extends React.Component {
     this.setState(prevState => ({
       isEdit: !prevState.isEdit,
       editId: taskId,
-      tempTitle: prevState.editingTitle,
     }));
   }
 
-  onBlurInput = () => {
+  editTitle = () => {
     const { editId, editedTitle } = this.state;
 
     this.props.changeTodo(editId, editedTitle);
-    this.setState(prevState => ({
-      editingTitle: prevState.tempTitle,
+    this.setState(({
+      editedTitle,
       isEdit: false,
     }));
+  };
+
+  onBlurInput = () => {
+    if (this.state.isKeyUp) {
+      this.setState({
+        isKeyUp: false,
+      });
+
+      return;
+    }
+
+    this.editTitle();
   }
 
   editingTitle = (event) => {
@@ -56,12 +67,19 @@ export class TodoItem extends React.Component {
         deleteTodo(editId);
       }
 
-      this.props.changeTodo(editId, editedTitle);
-      this.onBlurInput();
+      this.setState({
+        isKeyUp: true,
+      });
+
+      this.editTitle();
     }
 
     if (event.keyCode === 27) {
-      this.onBlurInput();
+      this.setState({
+        isKeyUp: true,
+      });
+
+      this.editTitle();
     }
   }
 

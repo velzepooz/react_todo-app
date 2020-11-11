@@ -48,7 +48,11 @@ export const changeTaskCompletement = (
   });
 
 export const completeAllTodos = (todos, isAllCompleted) => {
-  const preparedTasksModel = makePreparedTasksModel(todos, isAllCompleted);
+  const preparedTasksModel = makePreparedTasksModel(
+    todos,
+    true,
+    isAllCompleted,
+  );
 
   return fetch(`${apiUrl}/tasks.json`, {
     method: 'PATCH',
@@ -58,11 +62,16 @@ export const completeAllTodos = (todos, isAllCompleted) => {
 
 export const deleteCompletedTasks = (todos) => {
   const completedTodos = todos.filter(todo => todo.isCompleted === true);
-  const completedTodosModel = makePreparedTasksModel(completedTodos);
 
-  // TODO: Doesn't works properly!!!
-  return fetch(`${apiUrl}/tasks.json`, {
-    method: 'DELETE',
-    body: JSON.stringify(completedTodosModel),
+  completedTodos.forEach((todo) => {
+    fetch(`${apiUrl}/tasks/${todo.id}.json`, {
+      method: 'DELETE',
+    });
   });
 };
+
+export const sendChangedTaskTitle = changedTask => (
+  fetch(`${apiUrl}/tasks/${changedTask.id}.json`, {
+    method: 'PATCH',
+    body: JSON.stringify({ title: changedTask.title }),
+  }));

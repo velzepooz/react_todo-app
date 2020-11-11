@@ -1,7 +1,7 @@
-export const makePreparedTasksModel = (tasks, isCompleted) => {
+export const makePreparedTasksModel = (tasks, isAllCompleted, isCompleted) => {
   const firebaseTaskModel = {};
 
-  if (isCompleted) {
+  if (isAllCompleted) {
     tasks.forEach((todo) => {
       firebaseTaskModel[todo.id] = {
         isCompleted: !isCompleted, title: todo.title,
@@ -24,7 +24,8 @@ export const makeArrayFromTasksModel = (model) => {
   // eslint-disable-next-line no-restricted-syntax
   for (const [key, value] of Object.entries(model)) {
     tempArray.push({
-      id: key, ...value,
+      id: key,
+      ...value,
     });
   }
 
