@@ -1,4 +1,6 @@
-import React from 'react';
+/* eslint-disable no-console */
+/* eslint-disable space-before-function-paren */
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { Route } from 'react-router-dom';
 import { TodoAppShapes } from '../../Shapes/Shapes';
 import { AddForm } from '../AddForm/AddForm';
@@ -11,39 +13,52 @@ import {
   getTodosFromServer,
   deleteTask,
   changeTaskCompletement,
-  completeAllTodos,
+  completeAllTasks,
   deleteCompletedTasks,
   sendChangedTaskTitle,
 } from '../../api/api';
 import { makeArrayFromTasksModel } from '../../helpers/todoHelpers';
 
-export class TodoApp extends React.Component {
-  state = {
-    todos: [],
-    allCompleted: [],
-    isCompleted: true,
-  }
+export const TodoApp = () => {
+  const [todos, setTodos] = useState([]);
+  const [isAllCompleted, setIsAllCompleted] = useState(false);
 
-  componentDidMount() {
+  useEffect(() => {
     // TODO: Make loader
     getTodosFromServer()
       .then((data) => {
         if (data) {
           const tempArray = makeArrayFromTasksModel(data);
 
-          this.setState({
-            todos: [...tempArray],
-            allCompleted: tempArray.every(todo => todo.isCompleted === true),
-          });
+          setTodos(tempArray);
         }
       })
       .catch((error) => {
         throw new Error(error.message);
       });
-  }
+  }, []);
 
-  // eslint-disable-next-line space-before-function-paren
-  addTodo = async (taskTitle) => {
+  const checkIsAllTodosCompleted = useCallback(() => {
+    setIsAllCompleted(() => {
+      todos.every(todo => todo.isCompleted === true);
+    });
+  }, [todos, setIsAllCompleted]);
+
+  const countTodosByStatus = useCallback((isCompleted) => {
+    let counter = 0;
+
+    if (todos) {
+      todos.forEach((todo) => {
+        if (todo.isCompleted === isCompleted) {
+          counter += 1;
+        }
+      });
+    }
+
+    return counter;
+  }, [todos]);
+
+  const addNewTodo = useCallback(async (taskTitle) => {
     const newTodo = {
       title: taskTitle,
       isCompleted: false,
@@ -54,114 +69,75 @@ export class TodoApp extends React.Component {
       const data = await result.json();
 
       newTodo.id = data.name;
-
-      this.setState(prevState => ({
-        todos: [
-          ...prevState.todos,
-          { ...newTodo },
-        ],
-      }));
+      setTodos(prevTodos => [...prevTodos, { ...newTodo }]);
     } catch (error) {
       throw new Error(error.message);
     }
-  }
+  }, [setTodos]);
 
-  // TODO: Make async
-  deleteTodo = (taskId) => {
+  const deleteTodo = useCallback(async (taskId) => {
+    // TODO: Prepare task before sending
     deleteTask(taskId)
       .then((response) => {
         if (response.status === 200) {
-          this.setState(prevState => (
-            {
-              todos: prevState.todos.filter(todo => todo.id !== taskId),
-            }));
+          setTodos(prevTodos => prevTodos.filter(todo => todo.id !== taskId));
         }
       })
       .catch((error) => {
         throw new Error(error.message);
       });
-  }
+  }, [setTodos]);
 
-  // eslint-disable-next-line space-before-function-paren
-  changeCompletement = async (taskId) => {
+  const changeTodoCompletement = useCallback(async (taskId) => {
+    // TODO: prepare data for sending
     try {
-      const result = await changeTaskCompletement(taskId, this.state.todos);
+      const result = await changeTaskCompletement(taskId, todos);
 
       if (result) {
-        this.setState(prevState => ({
-          todos: prevState.todos.map((todo) => {
-            if (todo.id !== taskId) {
-              return todo;
-            }
+        setTodos(prevTodos => prevTodos.map((todo) => {
+          if (todo.id !== taskId) {
+            return todo;
+          }
 
-            return {
-              ...todo,
-              isCompleted: !todo.isCompleted,
-            };
-          }),
+          return {
+            ...todo,
+            isCompleted: !todo.isCompleted,
+          };
         }));
 
-        this.#checkCompletement();
+        checkIsAllTodosCompleted();
       }
     } catch (error) {
       throw new Error(error.message);
     }
-  }
+  }, [todos, setTodos, checkIsAllTodosCompleted]);
 
-  completeAll = async() => {
+  const completeAllTodos = useCallback(async() => {
+    // TODO: prepare before sending
     try {
-      const response = completeAllTodos(
-        this.state.todos,
-        this.state.allCompleted,
-      );
+      const response = completeAllTasks(todos, isAllCompleted);
 
       if (response) {
-        this.setState(prevState => ({
-          todos: prevState.todos.map(todo => ({
-            ...todo,
-            isCompleted: !prevState.allCompleted,
-          })),
-          allCompleted: !prevState.allCompleted,
-        }));
+        setTodos(prevTodos => prevTodos.map(todo => ({
+          ...todo,
+          isCompleted: !isAllCompleted,
+        })));
+        setIsAllCompleted(prevCompleted => !prevCompleted);
       }
     } catch (error) {
       throw new Error(error.message);
     }
-  }
+  }, [todos, setTodos, isAllCompleted, setIsAllCompleted]);
 
-  // eslint-disable-next-line react/sort-comp
-  #checkCompletement = () => {
-    this.setState(prevState => ({
-      allCompleted: prevState.todos.every(todo => (
-        todo.isCompleted === true
-      )),
-    }));
-  }
+  const deleteCompletedTodos = useCallback(() => {
+    // TODO: Prepare todos
+    deleteCompletedTasks(todos);
 
-  clearCompleted = () => {
-    deleteCompletedTasks(this.state.todos);
+    setTodos(prevTodos => prevTodos.filter(todo => todo.isCompleted !== true));
+  }, [todos, setTodos]);
 
-    this.setState(prevState => (
-      {
-        todos: prevState.todos.filter(todo => todo.isCompleted !== true),
-      }));
-  }
-
-  taskCounter = (isComplited) => {
-    let counter = 0;
-
-    this.state.todos.forEach((todo) => {
-      if (todo.isCompleted === isComplited) {
-        counter += 1;
-      }
-    });
-
-    return counter;
-  }
-
-  changeTodo = (taskId, newTitle) => {
-    const { todos } = this.state;
-
+  const editTodoTitle = useCallback((taskId, newTitle) => {
+    // TODO: make async
     const changedTask = {
       ...todos.find(todo => todo.id === taskId),
       title: newTitle,
@@ -171,63 +147,271 @@ export class TodoApp extends React.Component {
       .then(response => console.log(response))
       .catch(error => console.log(error));
 
-    this.setState(prevState => ({
-      todos: prevState.todos.map((todo) => {
-        if (todo.id !== taskId) {
-          return todo;
-        }
+    setTodos(prevTodos => prevTodos.map((todo) => {
+      if (todo.id !== taskId) {
+        return todo;
+      }
 
-        return {
-          ...todo,
-          title: newTitle,
-        };
-      }),
+      return {
+        ...todo,
+        title: newTitle,
+      };
     }));
-  }
+  }, [todos, setTodos]);
 
-  render() {
-    const activeTaskQuantity = this.taskCounter(!this.state.isCompleted);
-    const completedTaskQuantity = this.taskCounter(this.state.isCompleted);
-    const taskQuantity = this.state.todos.length;
+  const activeTaskQuantity = countTodosByStatus(false);
+  const completedTaskQuantity = countTodosByStatus(true);
+  const taskQuantity = useMemo(() => todos.length, [todos]);
 
-    return (
-      <section className="todoapp">
-        <header className="header">
-          <h1>todos</h1>
-          <AddForm
-            addTodo={this.addTodo}
-          />
-        </header>
+  return (
+    <section className="todoapp">
+      <header className="header">
+        <h1>todos</h1>
+        <AddForm
+          addNewTodo={addNewTodo}
+        />
+      </header>
 
-        <section className="main">
-          <CompleteAllCheckbox completeAll={this.completeAll} />
-          <Route
-            path="/"
-            render={({ location }) => (
-              <TodoList
-                changeTodo={this.changeTodo}
-                location={location}
-                deleteTodo={this.deleteTodo}
-                todos={this.state.todos}
-                completeTodo={this.changeCompletement}
-              />
-            )}
-          />
-        </section>
-        {!!taskQuantity
-          && (
-            <footer className="footer">
-              <TodoMenu
-                activeTasks={activeTaskQuantity}
-                clearCompleted={this.clearCompleted}
-                completedTasks={completedTaskQuantity}
-              />
-            </footer>
-          )
-        }
+      <section className="main">
+        <CompleteAllCheckbox completeAll={completeAllTodos} />
+        <Route
+          path="/"
+          render={({ location }) => (
+            <TodoList
+              changeTodo={editTodoTitle}
+              location={location}
+              deleteTodo={deleteTodo}
+              todos={todos}
+              changeTodoCompletement={changeTodoCompletement}
+            />
+          )}
+        />
       </section>
-    );
-  }
-}
+      {!!taskQuantity
+      && (
+        <footer className="footer">
+          <TodoMenu
+            activeTasks={activeTaskQuantity}
+            clearCompleted={deleteCompletedTodos}
+            completedTasks={completedTaskQuantity}
+          />
+        </footer>
+      )
+      }
+    </section>
+  );
+};
+// export class TodoApp extends React.Component {
+//   state = {
+//     todos: [],
+//     allCompleted: [],
+//     isCompleted: true,
+//   }
+
+// componentDidMount() {
+//   // TODO: Make loader
+//   getTodosFromServer()
+//     .then((data) => {
+//       if (data) {
+//         const tempArray = makeArrayFromTasksModel(data);
+
+//         this.setState({
+//           todos: [...tempArray],
+//           allCompleted: tempArray.every(todo => todo.isCompleted === true),
+//         });
+//       }
+//     })
+//     .catch((error) => {
+//       throw new Error(error.message);
+//     });
+// }
+
+// eslint-disable-next-line space-before-function-paren
+// addTodo = async (taskTitle) => {
+//   const newTodo = {
+//     title: taskTitle,
+//     isCompleted: false,
+//   };
+
+//   try {
+//     const result = await postTodo(newTodo);
+//     const data = await result.json();
+
+//     newTodo.id = data.name;
+
+//     this.setState(prevState => ({
+//       todos: [
+//         ...prevState.todos,
+//         { ...newTodo },
+//       ],
+//     }));
+//   } catch (error) {
+//     throw new Error(error.message);
+//   }
+// }
+
+// TODO: Make async
+// deleteTodo = (taskId) => {
+//   deleteTask(taskId)
+//     .then((response) => {
+//       if (response.status === 200) {
+//         this.setState(prevState => (
+//           {
+//             todos: prevState.todos.filter(todo => todo.id !== taskId),
+//           }));
+//       }
+//     })
+//     .catch((error) => {
+//       throw new Error(error.message);
+//     });
+// }
+
+// eslint-disable-next-line space-before-function-paren
+// changeCompletement = async (taskId) => {
+//   try {
+//     const result = await changeTaskCompletement(taskId, this.state.todos);
+
+//     if (result) {
+//       this.setState(prevState => ({
+//         todos: prevState.todos.map((todo) => {
+//           if (todo.id !== taskId) {
+//             return todo;
+//           }
+
+//           return {
+//             ...todo,
+//             isCompleted: !todo.isCompleted,
+//           };
+//         }),
+//       }));
+
+//       this.#checkCompletement();
+//     }
+//   } catch (error) {
+//     throw new Error(error.message);
+//   }
+// }
+
+// completeAll = async() => {
+//   try {
+//     const response = completeAllTodos(
+//       this.state.todos,
+//       this.state.allCompleted,
+//     );
+
+//     if (response) {
+//       this.setState(prevState => ({
+//         todos: prevState.todos.map(todo => ({
+//           ...todo,
+//           isCompleted: !prevState.allCompleted,
+//         })),
+//         allCompleted: !prevState.allCompleted,
+//       }));
+//     }
+//   } catch (error) {
+//     throw new Error(error.message);
+//   }
+// }
+
+// eslint-disable-next-line react/sort-comp
+// #checkCompletement = () => {
+//   this.setState(prevState => ({
+//     allCompleted: prevState.todos.every(todo => (
+//       todo.isCompleted === true
+//     )),
+//   }));
+// }
+
+// clearCompleted = () => {
+//   deleteCompletedTasks(this.state.todos);
+
+//   this.setState(prevState => (
+//     {
+//       todos: prevState.todos.filter(todo => todo.isCompleted !== true),
+//     }));
+// }
+
+// taskCounter = (isComplited) => {
+//   let counter = 0;
+
+//   this.state.todos.forEach((todo) => {
+//     if (todo.isCompleted === isComplited) {
+//       counter += 1;
+//     }
+//   });
+
+//   return counter;
+// }
+
+// changeTodo = (taskId, newTitle) => {
+//   const { todos } = this.state;
+
+//   const changedTask = {
+//     ...todos.find(todo => todo.id === taskId),
+//     title: newTitle,
+//   };
+
+//   sendChangedTaskTitle(changedTask)
+//     .then(response => console.log(response))
+//     .catch(error => console.log(error));
+
+//   this.setState(prevState => ({
+//     todos: prevState.todos.map((todo) => {
+//       if (todo.id !== taskId) {
+//         return todo;
+//       }
+
+//       return {
+//         ...todo,
+//         title: newTitle,
+//       };
+//     }),
+//   }));
+// }
+
+//   render() {
+//     const activeTaskQuantity = this.taskCounter(!this.state.isCompleted);
+//     const completedTaskQuantity = this.taskCounter(this.state.isCompleted);
+//     const taskQuantity = this.state.todos.length;
+
+//     return (
+//       <section className="todoapp">
+//         <header className="header">
+//           <h1>todos</h1>
+//           <AddForm
+//             addTodo={this.addTodo}
+//           />
+//         </header>
+
+//         <section className="main">
+//           <CompleteAllCheckbox completeAll={this.completeAll} />
+//           <Route
+//             path="/"
+//             render={({ location }) => (
+//               <TodoList
+//                 changeTodo={this.changeTodo}
+//                 location={location}
+//                 deleteTodo={this.deleteTodo}
+//                 todos={this.state.todos}
+//                 completeTodo={this.changeCompletement}
+//               />
+//             )}
+//           />
+//         </section>
+//         {!!taskQuantity
+//           && (
+//             <footer className="footer">
+//               <TodoMenu
+//                 activeTasks={activeTaskQuantity}
+//                 clearCompleted={this.clearCompleted}
+//                 completedTasks={completedTaskQuantity}
+//               />
+//             </footer>
+//           )
+//         }
+//       </section>
+//     );
+//   }
+// }
 
 TodoApp.propTypes = TodoAppShapes;

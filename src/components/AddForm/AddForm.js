@@ -16,7 +16,7 @@ export class AddForm extends React.Component {
     event.preventDefault();
 
     if (this.state.taskTitle) {
-      this.props.addTodo(this.state.taskTitle);
+      this.props.addNewTodo(this.state.taskTitle);
       event.target.reset();
     }
   }

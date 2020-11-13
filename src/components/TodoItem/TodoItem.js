@@ -89,7 +89,7 @@ export class TodoItem extends React.Component {
       id,
       isCompleted,
       deleteTodo,
-      completeTodo,
+      changeTodoCompletement,
     } = this.props;
 
     const { editedTitle } = this.state;
@@ -106,7 +106,7 @@ export class TodoItem extends React.Component {
               type="checkbox"
               className="toggle"
               id={id}
-              onChange={() => completeTodo(id)}
+              onChange={() => changeTodoCompletement(id)}
               checked={isCompleted}
             />
             <label

@@ -8,7 +8,7 @@ import { TodoListShapes } from '../../Shapes/Shapes';
 export const TodoList = ({
   todos,
   deleteTodo,
-  completeTodo,
+  changeTodoCompletement,
   location,
   changeTodo,
 }) => {
@@ -24,7 +24,7 @@ export const TodoList = ({
             deleteTodo={deleteTodo}
             title={todo.title}
             id={todo.id}
-            completeTodo={completeTodo}
+            changeTodoCompletement={changeTodoCompletement}
             isCompleted={todo.isCompleted}
           />
         ))
@@ -32,7 +32,7 @@ export const TodoList = ({
           <TodosFilter
             todos={todos}
             deleteTodo={deleteTodo}
-            completeTodo={completeTodo}
+            changeTodoCompletement={changeTodoCompletement}
             changeTodo={changeTodo}
             pathname={pathname}
           />

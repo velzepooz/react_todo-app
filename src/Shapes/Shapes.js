@@ -13,7 +13,7 @@ export const TodoAppShapes = {
 };
 
 export const AddFormShapes = {
-  addTodo: PropTypes.func.isRequired,
+  addNewTodo: PropTypes.func.isRequired,
 };
 
 export const TodosFilterShapes = {
@@ -21,7 +21,7 @@ export const TodosFilterShapes = {
     TodoShapes,
   )).isRequired,
   deleteTodo: PropTypes.func.isRequired,
-  completeTodo: PropTypes.func.isRequired,
+  changeTodoCompletement: PropTypes.func.isRequired,
   pathname: PropTypes.string.isRequired,
 };
 
@@ -40,7 +40,7 @@ export const TodoListShapes = {
     TodoShapes,
   )).isRequired,
   deleteTodo: PropTypes.func.isRequired,
-  completeTodo: PropTypes.func.isRequired,
+  changeTodoCompletement: PropTypes.func.isRequired,
   location: PropTypes.shape({
     pathname: PropTypes.string.isRequired,
     search: PropTypes.string.isRequired,

@@ -47,7 +47,7 @@ export const changeTaskCompletement = (
     throw new Error(error);
   });
 
-export const completeAllTodos = (todos, isAllCompleted) => {
+export const completeAllTasks = (todos, isAllCompleted) => {
   const preparedTasksModel = makePreparedTasksModel(
     todos,
     true,
